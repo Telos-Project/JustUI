@@ -7,7 +7,9 @@ var JustUI = {
 
 			return JustUI.core.set(document.createElement("div"), object);
 		},
-		extend: (element) => {
+		extend: (...arguments) => {
+
+			let element = arguments[0];
 
 			let children = [];
 			let index = arguments.length == 1 ? 0 : 1;
@@ -111,7 +113,7 @@ var JustUI = {
 				element.getClientRects().length
 			);
 		},
-		load: () => {
+		load: (...arguments) => {
 
 			JustUI.core.load.cache =
 				JustUI.core.load.cache != null ? JustUI.core.load.cache : [];
@@ -172,7 +174,7 @@ var JustUI = {
 			if(!async)
 				inject("script", text);
 		},
-		remove: () => {
+		remove: (...arguments) => {
 
 			Array.from(arguments).forEach((element) => {
 
