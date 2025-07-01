@@ -1,5 +1,21 @@
 var JustUI = {
 	core: {
+		changeTag: (element, tag) => {
+
+			let replacement = document.createElement(tag);
+
+			for(let {name, value} of element.attributes)
+				replacement.setAttribute(name, value);
+
+			while(element.firstChild)
+				replacement.appendChild(element.firstChild);
+
+			element.replaceWith(replacement);
+
+			return replacement;
+		},
+		componentEngine: null,
+		components: { },
 		create: (object) => {
 
 			if(typeof object == "string")
@@ -195,14 +211,16 @@ var JustUI = {
 					element.innerHTML = "";
 			});
 		},
-		scriptEngine: null,
-		selectorRules: { },
 		set: (element, object) => {
 
 			object = object != null ? object : { };
 			
-			if(object.tag != null && object.tag != element.tagName)
-				element = document.createElement(object.tag);
+			if(object.tag != null &&
+				object.tag.toLowerCase().trim() !=
+				element.tagName.toLowerCase().trim()) {
+				
+				element = JustUI.core.changeTag(element, object.tag);
+			}
 
 			if(object.attributes != null) {
 
@@ -237,8 +255,12 @@ var JustUI = {
 					if(object.content[i].nodeName != null)
 						element.appendChild(object.content[i]);
 
-					else if(typeof object.content[i] == "object")
-						element.appendChild(create(object.content[i]));
+					else if(typeof object.content[i] == "object") {
+
+						element.appendChild(
+							JustUI.core.create(object.content[i])
+						);
+					}
 
 					else {
 
@@ -302,53 +324,71 @@ var JustUI = {
 				
 			return element;
 		},
-		startScriptEngine: () => {
+		startComponentEngine: () => {
 
-			JustUI.core.stopScriptEngine();
+			JustUI.core.stopComponentEngine();
 
-			JustUI.core.scriptEngine = setInterval(
+			JustUI.core.componentEngine = setInterval(
 				() => {
 
-					document.querySelectorAll("*").forEach((element) => {
+					Object.keys(JustUI.core.components).forEach((key) => {
 
-						if(!element.scriptEngineInitialized) {
+						Array.from(document.querySelectorAll(key)).forEach(
+							(element) => {
 
-							if(element.onStart != null)
-								element.onStart(element);
+								element.componentInitialized =
+									element.componentInitialized != null ?
+										element.componentInitialized : { };
 
-							element.scriptEngineInitialized = true;
-						}
+								if(!element.componentInitialized[key]) {
 
-						if(element.onUpdate != null)
-							element.onUpdate(element);
-					});
+									let component =
+										JustUI.core.components[key];
 
-					Object.keys(JustUI.core.selectorRules).forEach((key) => {
+									if(typeof component == "function")
+										component = component(element);
+				
+									element = JustUI.core.set(
+										element, component
+									);
 
-						document.querySelectorAll(key).forEach((element) => {
+									element.componentInitialized =
+										element.componentInitialized != null ?
+											element.componentInitialized : { };
 
-							if(!element.selectorRuleInitialized) {
-			
-								JustUI.core.set(
-									element, JustUI.core.selectorRules[key]
-								);
-			
-								element.selectorRuleInitialized = true;
+									element.componentInitialized[key] = true;
+								}
 							}
-						});
+						);
 					});
+
+					Array.from(document.querySelectorAll("*")).forEach(
+						(element) => {
+
+							if(!element.scriptInitialized) {
+
+								if(element.onStart != null)
+									element.onStart(element);
+
+								element.scriptInitialized = true;
+							}
+
+							if(element.onUpdate != null)
+								element.onUpdate(element);
+						}
+					);
 				},
 				1000 / 60
 			)
 		},
-		stopScriptEngine: () => {
+		stopComponentEngine: () => {
 
-			if(JustUI.core.scriptEngine == null)
+			if(JustUI.core.componentEngine == null)
 				return;
 
-			clearInterval(JustUI.core.scriptEngine);
+			clearInterval(JustUI.core.componentEngine);
 
-			JustUI.core.scriptEngine = null;
+			JustUI.core.componentEngine = null;
 		},
 		toCSS: (object) => {
 
